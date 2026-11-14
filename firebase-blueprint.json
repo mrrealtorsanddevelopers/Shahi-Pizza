@@ -1,0 +1,185 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated customer profile and saved Karachi delivery preferences",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "whatsappPhone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "defaultArea": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "defaultAddress": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "deliveryInstructions": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "preferredOrderType": {
+          "type": "string",
+          "enum": ["Delivery", "Takeaway", "Dine-In"]
+        },
+        "preferredTheme": {
+          "type": "string",
+          "enum": ["dark", "light"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer restaurant order for Delivery, Takeaway, or Dine-In",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "customerEmail": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "customerPhone": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 24
+        },
+        "orderType": {
+          "type": "string",
+          "enum": ["Delivery", "Takeaway", "Dine-In"]
+        },
+        "areaName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "streetAddress": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "distanceKm": {
+          "type": "number"
+        },
+        "deliveryFee": {
+          "type": "number"
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["Cash on Delivery", "Pay at Counter"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Confirmed", "Preparing", "Out for Delivery", "Completed"]
+        },
+        "items": {
+          "type": "array"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderId",
+        "orderNumber",
+        "userId",
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "orderType",
+        "areaName",
+        "streetAddress",
+        "distanceKm",
+        "deliveryFee",
+        "subtotal",
+        "total",
+        "paymentMethod",
+        "status",
+        "items",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private customer profile documents keyed by Firebase Auth UID"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders with live status tracking"
+    }
+  }
+}
