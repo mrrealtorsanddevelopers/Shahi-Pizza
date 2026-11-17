@@ -97,6 +97,7 @@ interface AppContextValue {
     size?: PizzaSize,
     sourceEl?: HTMLElement | null,
   ) => void;
+  reorderItemsToCart: (items: CartItem[]) => void;
   updateCartQty: (key: string, delta: number) => void;
   removeCartItem: (key: string) => void;
   clearCart: () => void;
@@ -701,6 +702,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
+  const reorderItemsToCart = useCallback((incomingItems: CartItem[]) => {
+    if (!incomingItems || incomingItems.length === 0) return;
+
+    setCart((prev) => {
+      const next = [...prev];
+      for (const item of incomingItems) {
+        if (!item || item.quantity <= 0) continue;
+        const resolvedKey =
+          item.key || (item.size ? `${item.itemId}__${item.size}` : item.itemId);
+        const existingIndex = next.findIndex((c) => c.key === resolvedKey);
+        if (existingIndex >= 0) {
+          next[existingIndex] = {
+            ...next[existingIndex],
+            quantity: next[existingIndex].quantity + item.quantity,
+          };
+        } else {
+          next.push({
+            key: resolvedKey,
+            itemId: item.itemId,
+            name: item.name,
+            ...(item.size ? { size: item.size } : {}),
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            image: item.image,
+          });
+        }
+      }
+      return next;
+    });
+
+    setCartBounceKey((k) => k + 1);
+  }, []);
+
   const updateCartQty = useCallback((key: string, delta: number) => {
     setCart((prev) =>
       prev
@@ -1001,6 +1035,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         deliveryQuote,
         cart,
         addToCart,
+        reorderItemsToCart,
         updateCartQty,
         removeCartItem,
         clearCart,

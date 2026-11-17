@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Lock, PackageCheck, Pencil } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
+import { Flame, Lock, PackageCheck, Pencil, Truck } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
@@ -22,10 +23,46 @@ import type { OrderRecord } from './types';
 
 const ShahiPizzaApp: React.FC = () => {
   const { activeOrder } = useApp();
+  const prefersReducedMotion = useReducedMotion();
   const [showSplash, setShowSplash] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory>('Pizza Deals');
   const [trackingOrder, setTrackingOrder] = useState<OrderRecord | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
+
+  const isPreparing = activeOrder?.status === 'Preparing';
+  const isOutForDelivery = activeOrder?.status === 'Out for Delivery';
+  const isDynamicOrderStatus = isPreparing || isOutForDelivery;
+  const shouldPulseActiveBorder = Boolean(
+    isDynamicOrderStatus && !prefersReducedMotion,
+  );
+
+  const activeBorderAnimation = shouldPulseActiveBorder
+    ? isPreparing
+      ? {
+          borderColor: [
+            'rgba(217, 119, 6, 0.35)',
+            'rgba(245, 158, 11, 0.92)',
+            'rgba(217, 119, 6, 0.35)',
+          ],
+          boxShadow: [
+            '0 0 0 0px rgba(245, 158, 11, 0)',
+            '0 0 0 3px rgba(245, 158, 11, 0.16)',
+            '0 0 0 0px rgba(245, 158, 11, 0)',
+          ],
+        }
+      : {
+          borderColor: [
+            'rgba(185, 28, 28, 0.38)',
+            'rgba(239, 68, 68, 0.92)',
+            'rgba(185, 28, 28, 0.38)',
+          ],
+          boxShadow: [
+            '0 0 0 0px rgba(220, 38, 38, 0)',
+            '0 0 0 3px rgba(220, 38, 38, 0.18)',
+            '0 0 0 0px rgba(220, 38, 38, 0)',
+          ],
+        }
+    : undefined;
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-clip bg-[#fdf0ee] dark:bg-[#0b0304] text-[#240a0d] dark:text-[#fdf4f3] transition-colors duration-300">
@@ -43,12 +80,48 @@ const ShahiPizzaApp: React.FC = () => {
         {/* Post-Order Quick Tracking Bar (Appears ONLY AFTER an order has been placed!) */}
         {activeOrder && (
           <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4">
-            <div className="rounded-xl border border-red-700/30 dark:border-red-500/30 bg-[#fae4e0] dark:bg-[#1e0a0d] px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <motion.div
+              key={activeOrder.status}
+              initial={false}
+              animate={activeBorderAnimation}
+              transition={
+                shouldPulseActiveBorder
+                  ? {
+                      duration: 2.2,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }
+                  : undefined
+              }
+              className={`rounded-xl border-[1.5px] bg-[#fae4e0] dark:bg-[#1e0a0d] px-4 py-3 flex flex-wrap items-center justify-between gap-3 transition-colors ${
+                isPreparing
+                  ? 'border-amber-600/65 dark:border-amber-400/65'
+                  : isOutForDelivery
+                    ? 'border-red-600/70 dark:border-red-400/70'
+                    : 'border-red-700/30 dark:border-red-500/30'
+              }`}
+            >
               <div className="flex items-center gap-2.5 text-xs sm:text-sm min-w-0">
-                <PackageCheck className="w-4 h-4 text-red-700 dark:text-red-400 shrink-0" />
+                {isPreparing ? (
+                  <Flame className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                ) : isOutForDelivery ? (
+                  <Truck className="w-4 h-4 text-red-700 dark:text-red-400 shrink-0" />
+                ) : (
+                  <PackageCheck className="w-4 h-4 text-red-700 dark:text-red-400 shrink-0" />
+                )}
                 <span>
                   Active Order <strong className="font-tabular">#{activeOrder.orderNumber}</strong> ·{' '}
-                  {activeOrder.status}
+                  <span
+                    className={
+                      isPreparing
+                        ? 'font-semibold text-amber-800 dark:text-amber-300'
+                        : isOutForDelivery
+                          ? 'font-semibold text-red-700 dark:text-red-300'
+                          : ''
+                    }
+                  >
+                    {activeOrder.status}
+                  </span>
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -79,7 +152,7 @@ const ShahiPizzaApp: React.FC = () => {
                   Track Order
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
 

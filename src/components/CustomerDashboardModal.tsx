@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Crosshair,
   Flame,
+  History,
   Lock,
   LogOut,
   MapPin,
@@ -24,6 +25,7 @@ import {
   PackageCheck,
   Pencil,
   Phone,
+  Plus,
   RefreshCw,
   Save,
   Settings,
@@ -43,8 +45,50 @@ import {
   KARACHI_AREAS,
   RESTAURANT_LOCATION,
 } from '../data/karachiAreas';
-import { formatPKR, MENU_ITEMS, type PizzaSize } from '../data/menuData';
-import type { OrderRecord, OrderStatus, OrderType } from '../types';
+import { formatPKR, LOGO_IMAGE, MENU_ITEMS, type PizzaSize } from '../data/menuData';
+import type {
+  CartItem,
+  OrderItemPayload,
+  OrderRecord,
+  OrderStatus,
+  OrderType,
+} from '../types';
+
+function isValidPizzaSize(size?: string): size is PizzaSize {
+  return size === 'Small' || size === 'Regular' || size === 'Large';
+}
+
+function orderItemToCartItem(oi: OrderItemPayload): CartItem {
+  const matched = MENU_ITEMS.find(
+    (m) => (m.canonicalId || m.id) === oi.itemId || m.id === oi.itemId,
+  );
+  const baseId = matched ? matched.canonicalId || matched.id : oi.itemId;
+  const resolvedSize: PizzaSize | undefined = isValidPizzaSize(oi.size)
+    ? oi.size
+    : matched?.hasSizes
+      ? 'Regular'
+      : undefined;
+  const unitPrice = matched
+    ? matched.hasSizes && matched.sizes && resolvedSize
+      ? matched.sizes[resolvedSize]
+      : matched.price
+    : oi.unitPrice;
+  const key = resolvedSize ? `${baseId}__${resolvedSize}` : baseId;
+
+  return {
+    key,
+    itemId: baseId,
+    name: matched ? matched.name : oi.name,
+    ...(resolvedSize ? { size: resolvedSize } : {}),
+    unitPrice,
+    quantity: Math.max(1, oi.quantity),
+    image: matched?.image || LOGO_IMAGE,
+  };
+}
+
+function orderToCartItems(order: OrderRecord): CartItem[] {
+  return order.items.map(orderItemToCartItem);
+}
 
 interface CustomerDashboardModalProps {
   onTrackOrder: (order: OrderRecord) => void;
@@ -124,13 +168,16 @@ export const CustomerDashboardModal: React.FC<CustomerDashboardModalProps> = ({
     confirmLocation,
     locationState,
     theme,
-    addToCart,
+    reorderItemsToCart,
     cartCount,
     clearCart,
     setIsCartOpen,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<DashboardTab>('orders');
+  const [recentAddedItemKey, setRecentAddedItemKey] = useState<string | null>(
+    null,
+  );
 
   // Profile fields
   const [displayName, setDisplayName] = useState('');
@@ -289,51 +336,68 @@ export const CustomerDashboardModal: React.FC<CustomerDashboardModalProps> = ({
   };
 
   const handleReorder = (order: OrderRecord) => {
-    for (const oi of order.items) {
-      const found = MENU_ITEMS.find(
-        (m) => (m.canonicalId || m.id) === oi.itemId || m.id === oi.itemId,
-      );
-      if (found) {
-        for (let q = 0; q < oi.quantity; q++) {
-          addToCart(found, oi.size as PizzaSize | undefined, null);
-        }
-      }
-    }
+    const cartPayload: CartItem[] = orderToCartItems(order);
+    if (cartPayload.length === 0) return;
+    reorderItemsToCart(cartPayload);
     setIsDashboardOpen(false);
     setIsCartOpen(true);
   };
 
-  const { totalSpent, activeOrdersCount, last10ChartData, last10Avg } =
-    useMemo(() => {
-      const totalAll = orders.reduce((sum, o) => sum + o.total, 0);
-      const activeCount = orders.filter((o) => o.status !== 'Completed').length;
+  const handleQuickReorderItem = (cartItem: CartItem, uniqueBtnId: string) => {
+    reorderItemsToCart([{ ...cartItem, quantity: 1 }]);
+    setRecentAddedItemKey(uniqueBtnId);
+    window.setTimeout(() => {
+      setRecentAddedItemKey((curr) => (curr === uniqueBtnId ? null : curr));
+    }, 1500);
+  };
 
-      const recentChronological = orders.slice(0, 10).reverse();
-      const chartPoints: SpendingChartPoint[] = recentChronological.map((o) => ({
-        label: `#${o.orderNumber.replace('SP-', '')}`,
-        orderNumber: o.orderNumber,
-        dateLabel: new Date(o.createdAtMs).toLocaleDateString('en-PK', {
-          month: 'short',
-          day: 'numeric',
-        }),
-        total: o.total,
-        orderType: o.orderType,
-        status: o.status,
-      }));
+  const {
+    totalSpent,
+    activeOrdersCount,
+    last10ChartData,
+    last10Avg,
+    recentOrdersWithCartItems,
+  } = useMemo(() => {
+    const totalAll = orders.reduce((sum, o) => sum + o.total, 0);
+    const activeCount = orders.filter((o) => o.status !== 'Completed').length;
 
-      const recentSum = recentChronological.reduce((s, o) => s + o.total, 0);
-      const avg =
-        recentChronological.length > 0
-          ? Math.round(recentSum / recentChronological.length)
-          : 0;
+    const recentChronological = orders.slice(0, 10).reverse();
+    const chartPoints: SpendingChartPoint[] = recentChronological.map((o) => ({
+      label: `#${o.orderNumber.replace('SP-', '')}`,
+      orderNumber: o.orderNumber,
+      dateLabel: new Date(o.createdAtMs).toLocaleDateString('en-PK', {
+        month: 'short',
+        day: 'numeric',
+      }),
+      total: o.total,
+      orderType: o.orderType,
+      status: o.status,
+    }));
 
+    const recentSum = recentChronological.reduce((s, o) => s + o.total, 0);
+    const avg =
+      recentChronological.length > 0
+        ? Math.round(recentSum / recentChronological.length)
+        : 0;
+
+    const recentTop = orders.slice(0, 3).map((order) => {
+      const cartItems = orderToCartItems(order);
+      const totalItemQty = cartItems.reduce((sum, c) => sum + c.quantity, 0);
       return {
-        totalSpent: totalAll,
-        activeOrdersCount: activeCount,
-        last10ChartData: chartPoints,
-        last10Avg: avg,
+        order,
+        cartItems,
+        totalItemQty,
       };
-    }, [orders]);
+    });
+
+    return {
+      totalSpent: totalAll,
+      activeOrdersCount: activeCount,
+      last10ChartData: chartPoints,
+      last10Avg: avg,
+      recentOrdersWithCartItems: recentTop,
+    };
+  }, [orders]);
 
   const isDark = theme === 'dark';
 
@@ -498,9 +562,134 @@ export const CustomerDashboardModal: React.FC<CustomerDashboardModalProps> = ({
                 </div>
               </div>
 
-              {/* TAB 1: ORDERS, SPENDING TRENDS CHART & LIVE STATUS */}
+              {/* TAB 1: RECENT ORDERS, SPENDING TRENDS CHART & LIVE STATUS */}
               {activeTab === 'orders' && (
                 <div className="space-y-5">
+                  {/* Recent Orders Quick Re-Order Section */}
+                  <section
+                    aria-labelledby="recent-orders-heading"
+                    className="rounded-xl border border-[#ebd3ce] dark:border-[#34181c] bg-white dark:bg-[#1a0b0d] p-4 space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h3
+                          id="recent-orders-heading"
+                          className="font-display text-sm sm:text-base font-bold flex items-center gap-2"
+                        >
+                          <History className="w-4 h-4 text-red-700 dark:text-red-400 shrink-0" />
+                          <span>Recent Orders</span>
+                        </h3>
+                        <p className="text-[11px] sm:text-xs text-[#684347] dark:text-red-200/70">
+                          One-click re-order of past favourites directly to your cart
+                        </p>
+                      </div>
+                      {cartCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsDashboardOpen(false);
+                            setIsCartOpen(true);
+                          }}
+                          className="max-w-full overflow-hidden px-3 py-1.5 rounded-lg bg-[#fae4e0] dark:bg-[#2a1013] border border-red-700/35 text-red-800 dark:text-red-200 hover:bg-red-700 hover:text-white text-xs font-semibold leading-tight inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                          <span>Open Cart ({cartCount})</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {recentOrdersWithCartItems.length === 0 ? (
+                      <div className="rounded-xl bg-[#fdf3f0] dark:bg-[#120709] border border-dashed border-[#e3c7c2] dark:border-[#3d1f23] px-4 py-5 text-center">
+                        <p className="text-xs sm:text-sm font-semibold text-[#5f3b3f] dark:text-red-100/80">
+                          No recent orders yet
+                        </p>
+                        <p className="mt-1 text-xs text-[#7b5257] dark:text-red-200/60">
+                          Once you place an order, your past dishes will appear here for single-click re-ordering.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#ebd3ce] dark:divide-[#34181c]">
+                        {recentOrdersWithCartItems.map(
+                          ({ order, cartItems, totalItemQty }) => (
+                            <div
+                              key={`recent-${order.orderId}`}
+                              className="py-3 first:pt-1 last:pb-0 space-y-2.5"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs sm:text-sm font-display font-bold font-tabular truncate">
+                                    Order #{order.orderNumber}
+                                    <span className="font-sans font-normal text-[#684347] dark:text-red-200/70">
+                                      {' '}
+                                      ·{' '}
+                                      {new Date(
+                                        order.createdAtMs,
+                                      ).toLocaleDateString('en-PK', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                      })}{' '}
+                                      · {order.orderType}
+                                    </span>
+                                  </p>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleReorder(order)}
+                                  className="max-w-full overflow-hidden px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-xs font-semibold leading-tight inline-flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                                  <span>
+                                    Re-order All ({totalItemQty})
+                                  </span>
+                                </button>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                {cartItems.map((ci) => {
+                                  const btnId = `${order.orderId}__${ci.key}`;
+                                  const isAdded = recentAddedItemKey === btnId;
+                                  return (
+                                    <button
+                                      key={btnId}
+                                      type="button"
+                                      onClick={() =>
+                                        handleQuickReorderItem(ci, btnId)
+                                      }
+                                      className={`max-w-full overflow-hidden pl-1.5 pr-2.5 py-1.5 rounded-lg border text-left text-xs leading-tight inline-flex items-center gap-2 transition-colors cursor-pointer ${
+                                        isAdded
+                                          ? 'border-emerald-600/60 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200'
+                                          : 'border-[#e3c7c2] dark:border-[#3d1f23] bg-[#fdf5f3] dark:bg-[#240d10] hover:border-red-600 text-[#240a0d] dark:text-[#fdf4f3]'
+                                      }`}
+                                    >
+                                      <img
+                                        src={ci.image}
+                                        alt=""
+                                        className="w-7 h-7 rounded-md object-cover shrink-0"
+                                      />
+                                      <span className="min-w-0 truncate font-medium">
+                                        {ci.name}
+                                        {ci.size ? ` (${ci.size})` : ''}
+                                      </span>
+                                      <span className="font-tabular font-bold text-red-700 dark:text-red-400 shrink-0">
+                                        {formatPKR(ci.unitPrice)}
+                                      </span>
+                                      {isAdded ? (
+                                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                      ) : (
+                                        <Plus className="w-3.5 h-3.5 text-red-700 dark:text-red-400 shrink-0" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </section>
+
                   {/* Spending Trends Chart (Last 10 Orders) */}
                   <div className="rounded-xl border border-[#ebd3ce] dark:border-[#34181c] bg-white dark:bg-[#1a0b0d] p-4 space-y-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
