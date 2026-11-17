@@ -1,25 +1,48 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Flame, Lock, PackageCheck, Pencil, Truck } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
-import { AuthModal } from './components/AuthModal';
-import { CartDrawer } from './components/CartDrawer';
-import { CheckoutModal } from './components/CheckoutModal';
-import { CustomerDashboardModal } from './components/CustomerDashboardModal';
-import { EditOrderModal } from './components/EditOrderModal';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 import { FlyingCartOverlay } from './components/FlyingCartOverlay';
 import { HeroSlider } from './components/HeroSlider';
 import { LocationFooter } from './components/LocationFooter';
-import { LocationModal } from './components/LocationModal';
 import { MenuSection } from './components/MenuSection';
 import { Navbar } from './components/Navbar';
-import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { PromoBanner } from './components/PromoBanner';
 import { SplashScreen } from './components/SplashScreen';
 import { ToastContainer } from './components/ToastContainer';
 import type { MenuCategory } from './data/menuData';
 import type { OrderRecord } from './types';
+
+const AuthModal = lazy(() =>
+  import('./components/AuthModal').then((m) => ({ default: m.AuthModal })),
+);
+const CartDrawer = lazy(() =>
+  import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer })),
+);
+const CheckoutModal = lazy(() =>
+  import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })),
+);
+const CustomerDashboardModal = lazy(() =>
+  import('./components/CustomerDashboardModal').then((m) => ({
+    default: m.CustomerDashboardModal,
+  })),
+);
+const EditOrderModal = lazy(() =>
+  import('./components/EditOrderModal').then((m) => ({
+    default: m.EditOrderModal,
+  })),
+);
+const LocationModal = lazy(() =>
+  import('./components/LocationModal').then((m) => ({
+    default: m.LocationModal,
+  })),
+);
+const OrderTrackingModal = lazy(() =>
+  import('./components/OrderTrackingModal').then((m) => ({
+    default: m.OrderTrackingModal,
+  })),
+);
 
 const ShahiPizzaApp: React.FC = () => {
   const { activeOrder } = useApp();
@@ -168,28 +191,30 @@ const ShahiPizzaApp: React.FC = () => {
       <FlyingCartOverlay />
       <ToastContainer onViewOrder={(order) => setTrackingOrder(order)} />
 
-      {!showSplash && <LocationModal />}
-      <CartDrawer />
-      <CheckoutModal onOrderPlaced={(order) => setTrackingOrder(order)} />
-      <OrderTrackingModal
-        order={trackingOrder}
-        onClose={() => setTrackingOrder(null)}
-        onEditOrder={(order) => setEditingOrder(order)}
-      />
-      <EditOrderModal
-        order={editingOrder}
-        onClose={() => setEditingOrder(null)}
-        onSaved={(updated) => {
-          if (trackingOrder?.orderId === updated.orderId) {
-            setTrackingOrder(updated);
-          }
-        }}
-      />
-      <AuthModal />
-      <CustomerDashboardModal
-        onTrackOrder={(order) => setTrackingOrder(order)}
-        onEditOrder={(order) => setEditingOrder(order)}
-      />
+      <Suspense fallback={null}>
+        {!showSplash && <LocationModal />}
+        <CartDrawer />
+        <CheckoutModal onOrderPlaced={(order) => setTrackingOrder(order)} />
+        <OrderTrackingModal
+          order={trackingOrder}
+          onClose={() => setTrackingOrder(null)}
+          onEditOrder={(order) => setEditingOrder(order)}
+        />
+        <EditOrderModal
+          order={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSaved={(updated) => {
+            if (trackingOrder?.orderId === updated.orderId) {
+              setTrackingOrder(updated);
+            }
+          }}
+        />
+        <AuthModal />
+        <CustomerDashboardModal
+          onTrackOrder={(order) => setTrackingOrder(order)}
+          onEditOrder={(order) => setEditingOrder(order)}
+        />
+      </Suspense>
     </div>
   );
 };

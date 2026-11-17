@@ -50,11 +50,18 @@ interface MenuCardProps {
 const MenuCard: React.FC<MenuCardProps> = ({ item, index }) => {
   const { addToCart, updateCartQty, getCartQtyForItem } = useApp();
   const [selectedSize, setSelectedSize] = useState<PizzaSize>('Regular');
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     setImgError(false);
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) {
+      setImgLoaded(true);
+    } else {
+      setImgLoaded(false);
+    }
   }, [item.image]);
 
   const activePrice =
@@ -83,18 +90,35 @@ const MenuCard: React.FC<MenuCardProps> = ({ item, index }) => {
       }}
       className="group min-w-0 flex flex-col rounded-2xl border border-[#ebcac4] dark:border-[#3d151a] bg-[#fff8f6] dark:bg-[#170709] overflow-hidden shadow-sm hover:shadow-xl hover:shadow-red-950/10 dark:hover:shadow-black/60 transition-all duration-300"
     >
-      {/* Image Area */}
+      {/* Image Area with Fixed 4:3 Skeleton Screen Placeholder */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#fae4e0] dark:bg-[#240b0e]">
+        {!imgLoaded && !imgError && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 skeleton-shimmer flex flex-col items-center justify-center gap-2 p-4"
+          >
+            <UtensilsCrossed className="w-7 h-7 text-red-700/30 dark:text-red-300/25" />
+            <div className="w-20 h-2 rounded-full bg-red-900/10 dark:bg-red-200/10" />
+          </div>
+        )}
+
         {!imgError ? (
           <img
             ref={imgRef}
             src={item.image}
             alt={item.name}
-            loading={index < 8 ? 'eager' : 'lazy'}
+            width={480}
+            height={360}
+            loading="lazy"
             decoding="async"
-            fetchPriority={index < 4 ? 'high' : 'auto'}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => {
+              setImgError(true);
+              setImgLoaded(true);
+            }}
+            className={`w-full h-full object-cover group-hover:scale-105 transition-[opacity,transform] duration-500 ease-out ${
+              imgLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-red-900/20 to-red-700/10">
@@ -244,19 +268,6 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
   selectedCategoryRef.current = selectedCategory;
 
   const activeIndex = Math.max(0, MENU_CATEGORIES.indexOf(selectedCategory));
-
-  // Warm browser cache with the unique dish images so switching categories is instantaneous
-  useEffect(() => {
-    const uniqueSrcs = Array.from(new Set(MENU_ITEMS.map((item) => item.image)));
-    const timer = window.setTimeout(() => {
-      uniqueSrcs.forEach((src) => {
-        const img = new Image();
-        img.decoding = 'async';
-        img.src = src;
-      });
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   // Center the active category inside the scrollable container with natural spring physics
   const centerCategoryButton = useCallback(

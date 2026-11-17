@@ -43,6 +43,36 @@
   scrollbar-width: none;
 }
 
+@keyframes shahi-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f6dcd7 0%,
+    #fff3f0 45%,
+    #f6dcd7 100%
+  );
+  background-size: 200% 100%;
+  animation: shahi-shimmer 1.6s ease-in-out infinite;
+}
+
+html.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #240b0e 0%,
+    #3a1419 45%,
+    #240b0e 100%
+  );
+  background-size: 200% 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

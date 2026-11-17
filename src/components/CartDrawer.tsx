@@ -106,7 +106,11 @@ export const CartDrawer: React.FC = () => {
                     <img
                       src={item.image}
                       alt={item.name}
-                      className="w-16 h-16 rounded-lg object-cover shrink-0"
+                      width={64}
+                      height={64}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-16 h-16 rounded-lg object-cover shrink-0 bg-[#fae4e0] dark:bg-[#240b0e]"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

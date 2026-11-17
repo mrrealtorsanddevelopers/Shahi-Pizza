@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, MapPin, Navigation } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Navigation, UtensilsCrossed } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { RESTAURANT_LOCATION } from '../data/karachiAreas';
 import { HERO_SLIDES, type MenuCategory } from '../data/menuData';
@@ -12,15 +12,9 @@ interface HeroSliderProps {
 export const HeroSlider: React.FC<HeroSliderProps> = ({ onSelectCategory }) => {
   const { locationState, setShowLocationModal } = useApp();
   const [index, setIndex] = useState(0);
-
-  // Preload all 3 hero slides so slide transitions stay instantaneous
-  useEffect(() => {
-    HERO_SLIDES.forEach((slide) => {
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = slide.image;
-    });
-  }, []);
+  const [loadedSlides, setLoadedSlides] = useState<Record<string, boolean>>({});
+  const [erroredSlides, setErroredSlides] = useState<Record<string, boolean>>({});
+  const heroImgRef = useRef<HTMLImageElement | null>(null);
 
   // Continuous 3-second infinite auto-sliding loop
   useEffect(() => {
@@ -31,6 +25,17 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ onSelectCategory }) => {
   }, []);
 
   const current = HERO_SLIDES[index];
+  const isCurrentLoaded = Boolean(loadedSlides[current.id]);
+  const isCurrentErrored = Boolean(erroredSlides[current.id]);
+
+  useEffect(() => {
+    const el = heroImgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) {
+      setLoadedSlides((prev) =>
+        prev[current.id] ? prev : { ...prev, [current.id]: true },
+      );
+    }
+  }, [current.id]);
 
   const handleCtaClick = () => {
     onSelectCategory(current.targetCategory);
@@ -43,6 +48,18 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ onSelectCategory }) => {
   return (
     <section id="top" className="w-full">
       <div className="relative w-full h-[360px] sm:h-[430px] lg:h-[500px] overflow-hidden bg-[#fdf0ee] dark:bg-[#130507] transition-colors duration-300">
+        {/* Hero Skeleton Screen Placeholder */}
+        {!isCurrentLoaded && !isCurrentErrored && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 skeleton-shimmer flex items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-2 opacity-25">
+              <UtensilsCrossed className="w-10 h-10 text-red-700 dark:text-red-300" />
+            </div>
+          </div>
+        )}
+
         <AnimatePresence mode="sync" initial={false}>
           <motion.div
             key={current.id}
@@ -52,14 +69,26 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ onSelectCategory }) => {
             transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0"
           >
-            <img
-              src={current.image}
-              alt={current.title}
-              loading="eager"
-              decoding="async"
-              fetchPriority={index === 0 ? 'high' : 'auto'}
-              className="w-full h-full object-cover object-center"
-            />
+            {!isCurrentErrored && (
+              <img
+                ref={heroImgRef}
+                src={current.image}
+                alt={current.title}
+                width={960}
+                height={540}
+                loading="lazy"
+                decoding="async"
+                onLoad={() =>
+                  setLoadedSlides((prev) => ({ ...prev, [current.id]: true }))
+                }
+                onError={() =>
+                  setErroredSlides((prev) => ({ ...prev, [current.id]: true }))
+                }
+                className={`w-full h-full object-cover object-center transition-opacity duration-300 ${
+                  isCurrentLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+            )}
             {/* Light Mode: Bright 20% Creamy-Red Left/Bottom Scrim | Dark Mode: Rich 70% Crimson-Black Scrim */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#fdf0ee] via-[#fdf0ee]/55 to-[#fdf0ee]/15 dark:from-[#0b0304]/92 dark:via-[#140507]/55 dark:to-black/25 transition-colors duration-300" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#fdf0ee]/95 via-[#fdf0ee]/78 to-transparent dark:from-[#0b0304]/85 dark:via-[#140507]/45 dark:to-transparent transition-colors duration-300" />

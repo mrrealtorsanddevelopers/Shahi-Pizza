@@ -1,3 +1,4 @@
+import IMG_LOGO from '../assets/images/shahi_logo.webp';
 import IMG_HERO_PIZZA from '../assets/images/hero_shahi_pizza_feast_1794584957378.webp';
 import IMG_HERO_BBQ from '../assets/images/hero_charcoal_bbq_grill_1794584958159.webp';
 import IMG_HERO_COMBO from '../assets/images/hero_zinger_rolls_combo_1794584959259.webp';
@@ -45,7 +46,7 @@ export interface HeroSlide {
   targetCategory: MenuCategory;
 }
 
-export const LOGO_IMAGE = '/assets/aistudio/Shahi_Pizza_Logo_05ab8ccd.jpg';
+export const LOGO_IMAGE = IMG_LOGO;
 
 export const HERO_SLIDES: HeroSlide[] = [
   {

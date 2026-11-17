@@ -665,7 +665,11 @@ export const CustomerDashboardModal: React.FC<CustomerDashboardModalProps> = ({
                                       <img
                                         src={ci.image}
                                         alt=""
-                                        className="w-7 h-7 rounded-md object-cover shrink-0"
+                                        width={28}
+                                        height={28}
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-7 h-7 rounded-md object-cover shrink-0 bg-[#fae4e0] dark:bg-[#240b0e]"
                                       />
                                       <span className="min-w-0 truncate font-medium">
                                         {ci.name}
