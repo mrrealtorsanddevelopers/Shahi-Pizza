@@ -1,3 +1,15 @@
+import IMG_HERO_PIZZA from '../assets/images/hero_shahi_pizza_feast_1794584957378.webp';
+import IMG_HERO_BBQ from '../assets/images/hero_charcoal_bbq_grill_1794584958159.webp';
+import IMG_HERO_COMBO from '../assets/images/hero_zinger_rolls_combo_1794584959259.webp';
+
+import IMG_PIZZA_TIKKA from '../assets/images/dish_pizza_tikka_1794584958533.webp';
+import IMG_PIZZA_MALAI from '../assets/images/dish_pizza_malai_creamy_1794584959202.webp';
+import IMG_PIZZA_CLASSIC from '../assets/images/dish_pizza_classic_veggie_1794584959277.webp';
+import IMG_ZINGER from '../assets/images/dish_zinger_burger_1794584959675.webp';
+import IMG_CLUB from '../assets/images/dish_club_sandwich_1794584959974.webp';
+import IMG_BBQ from '../assets/images/dish_bbq_tikka_platter_1794584962058.webp';
+import IMG_ROLLS from '../assets/images/dish_paratha_rolls_1794584967319.webp';
+
 export type MenuCategory =
   | 'Pizza Deals'
   | 'Special Pizzas'
@@ -34,18 +46,6 @@ export interface HeroSlide {
 }
 
 export const LOGO_IMAGE = '/assets/aistudio/Shahi_Pizza_Logo_05ab8ccd.jpg';
-
-const IMG_HERO_PIZZA = '/src/assets/images/hero_shahi_pizza_feast_1794584957378.jpg';
-const IMG_HERO_BBQ = '/src/assets/images/hero_charcoal_bbq_grill_1794584958159.jpg';
-const IMG_HERO_COMBO = '/src/assets/images/hero_zinger_rolls_combo_1794584959259.jpg';
-
-const IMG_PIZZA_TIKKA = '/src/assets/images/dish_pizza_tikka_1794584958533.jpg';
-const IMG_PIZZA_MALAI = '/src/assets/images/dish_pizza_malai_creamy_1794584959202.jpg';
-const IMG_PIZZA_CLASSIC = '/src/assets/images/dish_pizza_classic_veggie_1794584959277.jpg';
-const IMG_ZINGER = '/src/assets/images/dish_zinger_burger_1794584959675.jpg';
-const IMG_CLUB = '/src/assets/images/dish_club_sandwich_1794584959974.jpg';
-const IMG_BBQ = '/src/assets/images/dish_bbq_tikka_platter_1794584962058.jpg';
-const IMG_ROLLS = '/src/assets/images/dish_paratha_rolls_1794584967319.jpg';
 
 export const HERO_SLIDES: HeroSlide[] = [
   {

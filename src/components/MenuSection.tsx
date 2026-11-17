@@ -53,6 +53,10 @@ const MenuCard: React.FC<MenuCardProps> = ({ item, index }) => {
   const [imgError, setImgError] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
+  useEffect(() => {
+    setImgError(false);
+  }, [item.image]);
+
   const activePrice =
     item.hasSizes && item.sizes ? item.sizes[selectedSize] : item.price;
 
@@ -86,9 +90,9 @@ const MenuCard: React.FC<MenuCardProps> = ({ item, index }) => {
             ref={imgRef}
             src={item.image}
             alt={item.name}
-            loading={index < 6 ? 'eager' : 'lazy'}
+            loading={index < 8 ? 'eager' : 'lazy'}
             decoding="async"
-            referrerPolicy="no-referrer"
+            fetchPriority={index < 4 ? 'high' : 'auto'}
             onError={() => setImgError(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           />
@@ -240,6 +244,19 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
   selectedCategoryRef.current = selectedCategory;
 
   const activeIndex = Math.max(0, MENU_CATEGORIES.indexOf(selectedCategory));
+
+  // Warm browser cache with the unique dish images so switching categories is instantaneous
+  useEffect(() => {
+    const uniqueSrcs = Array.from(new Set(MENU_ITEMS.map((item) => item.image)));
+    const timer = window.setTimeout(() => {
+      uniqueSrcs.forEach((src) => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = src;
+      });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Center the active category inside the scrollable container with natural spring physics
   const centerCategoryButton = useCallback(

@@ -13,6 +13,15 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ onSelectCategory }) => {
   const { locationState, setShowLocationModal } = useApp();
   const [index, setIndex] = useState(0);
 
+  // Preload all 3 hero slides so slide transitions stay instantaneous
+  useEffect(() => {
+    HERO_SLIDES.forEach((slide) => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = slide.image;
+    });
+  }, []);
+
   // Continuous 3-second infinite auto-sliding loop
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -48,6 +57,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ onSelectCategory }) => {
               alt={current.title}
               loading="eager"
               decoding="async"
+              fetchPriority={index === 0 ? 'high' : 'auto'}
               className="w-full h-full object-cover object-center"
             />
             {/* Light Mode: Bright 20% Creamy-Red Left/Bottom Scrim | Dark Mode: Rich 70% Crimson-Black Scrim */}
